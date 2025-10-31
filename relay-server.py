@@ -40,6 +40,11 @@ async def ws_handler(websocket, path):
 async def main():
     server = await websockets.serve(ws_handler, "192.168.1.12", WS_PORT)
     print(f"WebSocket server listening on port {WS_PORT}")
-    await fifo_reader()  # runs forever
 
+    # Run fifo_reader as a background task
+    asyncio.create_task(fifo_reader())
+    
+    # Keep the server running forever
+    await asyncio.Future()  # run forever
+    
 asyncio.run(main())
