@@ -38,7 +38,7 @@ async def ws_handler(websocket, path):
         clients.remove(websocket)
 
 async def main():
-    server = await websockets.serve(ws_handler, "0.0.0.0", WS_PORT)
+    server = await websockets.serve(ws_handler, "192.168.1.12", WS_PORT)
     print(f"WebSocket server listening on port {WS_PORT}")
     await fifo_reader()  # runs forever
 
