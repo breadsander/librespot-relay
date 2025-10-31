@@ -9,7 +9,7 @@ if not os.path.exists(FIFO):
     os.mkfifo(FIFO)
 
 async def relay():
-    uri = "ws://192.168.1.12:24879"
+    uri = "ws://localhost:24879"
     while True:
         try:
             async with websockets.connect(uri) as websocket:
