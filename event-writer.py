@@ -3,7 +3,7 @@ import os
 import json
 
 event_data = {
-    event = os.environ.get("PLAYER_EVENT")
+    'event': os.environ.get("PLAYER_EVENT")
 }
 
 FIFO = "/tmp/spotify_events.fifo"
