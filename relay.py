@@ -10,12 +10,18 @@ if not os.path.exists(FIFO):
 
 async def relay():
     uri = "ws://192.168.1.12:24879"
-    async with websockets.connect(uri) as websocket:
-        while True:
-            with open(FIFO) as f:
-                for line in f:
-                    event = json.loads(line)
-                    print(event)
-                    await websocket.send(json.dumps(event))
-
+    while True:
+        try:
+            async with websockets.connect(uri) as websocket:
+                print('Connected!')
+                while True:
+                    with open(FIFO) as f:
+                        for line in f:
+                            event = json.loads(line)
+                            print(event)
+                            await websocket.send(json.dumps(event))
+        except (ConnectionRefusedError, OSError) as e:
+            print("Websocket not ready, retrying in 2s...")
+            await asyncio.sleep(2)
+                            
 asyncio.run(relay())
