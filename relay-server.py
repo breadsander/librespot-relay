@@ -1,50 +1,64 @@
-#!/usr/bin/env python3
 import asyncio
 import websockets
 import json
-import os
 
-FIFO_PATH = "/tmp/spotify_events.fifo"
+WS_HOST = "192.168.1.12"
 WS_PORT = 24879
 
-clients = set()
+TCP_HOST = "127.0.0.1"
+TCP_PORT = 24880
 
-async def fifo_reader():
-    """Continuously read lines from the FIFO and broadcast to clients."""
-    while True:
-        with open(FIFO_PATH, "r") as fifo:
-            for line in fifo:
-                line = line.strip()
-                if not line:
-                    continue
-                event = json.loads(line)
-                await broadcast(event)
+connected_websockets = set()
 
-async def broadcast(event):
-    """Send event to all connected WebSocket clients."""
-    dead_clients = set()
-    for ws in clients:
-        try:
-            await ws.send(json.dumps(event))
-        except:
-            dead_clients.add(ws)
-    clients.difference_update(dead_clients)
+async def handle_tcp_client(reader, writer):
+    addr = writer.get_extra_info('peername')
+    print(f"TCP client connected: {addr}")
 
-async def ws_handler(websocket, path):
-    clients.add(websocket)
     try:
-        await websocket.wait_closed()
+        while data := await reader.readline():
+            msg_text = data.decode().strip()
+            if not msg_text:
+                continue
+
+            try:
+                message = json.loads(msg_text)  # Parse JSON from TCP
+                print(f"Received JSON: {message}")
+                await broadcast_to_websockets(message)
+            except json.JSONDecodeError:
+                print(f"Invalid JSON received: {msg_text}")
+    except Exception as e:
+        print(f"TCP client error: {e}")
     finally:
-        clients.remove(websocket)
+        writer.close()
+        await writer.wait_closed()
+        print(f"TCP client disconnected: {addr}")
+
+async def websocket_handler(websocket):
+    connected_websockets.add(websocket)
+    print("WebSocket client connected.")
+    try:
+        async for _ in websocket:
+            pass  # Ignore incoming WS messages
+    finally:
+        connected_websockets.remove(websocket)
+        print("WebSocket client disconnected.")
+
+async def broadcast_to_websockets(message):
+    """Broadcast a Python dict as JSON to all WebSocket clients."""
+    if not connected_websockets:
+        return
+    msg_text = json.dumps(message)
+    await asyncio.gather(*[ws.send(msg_text) for ws in connected_websockets])
 
 async def main():
-    server = await websockets.serve(ws_handler, "192.168.1.12", WS_PORT)
-    print(f"WebSocket server listening on port {WS_PORT}")
+    tcp_server = await asyncio.start_server(handle_tcp_client, TCP_HOST, TCP_PORT)
+    ws_server = await websockets.serve(websocket_handler, WS_HOST, WS_PORT)
 
-    # Run fifo_reader as a background task
-    asyncio.create_task(fifo_reader())
-    
-    # Keep the server running forever
-    await asyncio.Future()  # run forever
-    
-asyncio.run(main())
+    print(f"TCP server listening on {TCP_HOST}:{TCP_PORT}")
+    print(f"WebSocket server listening on ws://{WS_HOST}:{WS_PORT}")
+
+    async with tcp_server, ws_server:
+        await asyncio.gather(tcp_server.serve_forever(), ws_server.wait_closed())
+
+if __name__ == "__main__":
+    asyncio.run(main())
