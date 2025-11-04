@@ -11,7 +11,9 @@ TCP_PORT = 24880
 # What we care about
 # session_disconnected
 # track_changed
-# 
+
+# librespot --name BreadPiConnect --format F64 --bitrate 320 --device "Schiit Modi 3E" --onevent /home/wellings/git/librespot-relay/send-event.py
+# cargo run --release --features "alsa-backend" -- --bitrate 320 --backend alsa --device hw:2,0 --alsa-mixer-device="hw:0" --alsa-mixer-control="Master" --onevent /home/wellings/git/librespot-relay/send-event.py
 
 # List of PLAYER_EVENTs that have a TRACK_ID
 TRACK_EVENTS = {
