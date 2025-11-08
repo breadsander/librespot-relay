@@ -1,0 +1,17 @@
+[Unit]
+Description=librespot-relay for librespot
+After=network-online.target sound.target local-fs.target
+Wants=network-online.target sound.target local-fs.target
+
+[Service]
+Type=simple
+User=librespotrelay
+WorkingDirectory=/opt/librespot-relay
+ExecStart=/opt/librespot-relay/venv/bin/python /opt/librespot-relay/relay-server.py
+Restart=always
+RestartSec=3
+StandardOutput=append:/var/log/librespot-relay.log
+StandardError=append:/var/log/librespot-relay.log
+
+[Install]
+WantedBy=multi-user.target
